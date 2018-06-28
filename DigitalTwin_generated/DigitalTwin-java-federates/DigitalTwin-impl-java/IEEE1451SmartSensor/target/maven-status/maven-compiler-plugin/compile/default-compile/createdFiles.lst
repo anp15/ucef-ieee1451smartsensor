@@ -1,7 +1,10 @@
 DigitalTwin/ChannelIDTEDS.class
+DigitalTwin/IEEE1451SmartSensor$1.class
 DigitalTwin/TimeDuration.class
 DigitalTwin/UInt16.class
+DigitalTwin/Tester$1.class
 DigitalTwin/UInt32.class
+DigitalTwin/SensorNonOperableException.class
 DigitalTwin/TemperatureSensor.class
 DigitalTwin/IEEE1451SmartSensor.class
 DigitalTwin/Float32.class

@@ -9,5 +9,6 @@
 /home/vagrant/Downloads/ucef-ieee1451smartsensor/DigitalTwin_generated/DigitalTwin-java-federates/DigitalTwin-impl-java/IEEE1451SmartSensor/src/main/java/DigitalTwin/ChannelTEDS.java
 /home/vagrant/Downloads/ucef-ieee1451smartsensor/DigitalTwin_generated/DigitalTwin-java-federates/DigitalTwin-impl-java/IEEE1451SmartSensor/src/main/java/DigitalTwin/IEEE1451SmartSensor.java
 /home/vagrant/Downloads/ucef-ieee1451smartsensor/DigitalTwin_generated/DigitalTwin-java-federates/DigitalTwin-impl-java/IEEE1451SmartSensor/src/main/java/DigitalTwin/TemperatureSensor.java
+/home/vagrant/Downloads/ucef-ieee1451smartsensor/DigitalTwin_generated/DigitalTwin-java-federates/DigitalTwin-impl-java/IEEE1451SmartSensor/src/main/java/DigitalTwin/SensorNonOperableException.java
 /home/vagrant/Downloads/ucef-ieee1451smartsensor/DigitalTwin_generated/DigitalTwin-java-federates/DigitalTwin-impl-java/IEEE1451SmartSensor/src/main/java/DigitalTwin/ChannelIDTEDS.java
 /home/vagrant/Downloads/ucef-ieee1451smartsensor/DigitalTwin_generated/DigitalTwin-java-federates/DigitalTwin-impl-java/IEEE1451SmartSensor/src/main/java/DigitalTwin/IEEE1451Dot0TransducerServices.java

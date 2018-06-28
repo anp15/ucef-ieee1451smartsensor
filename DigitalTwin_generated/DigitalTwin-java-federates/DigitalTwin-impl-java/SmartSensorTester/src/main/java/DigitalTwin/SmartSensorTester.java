@@ -4,10 +4,16 @@ import java.awt.Component;
 import java.awt.Dimension;
 
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,9 +28,13 @@ import org.cpswt.hla.base.AdvanceTimeRequest;
  */
 public class SmartSensorTester extends SmartSensorTesterBase {
 
-    private final static Logger log = LogManager.getLogger(SmartSensorTester.class);
+	private final static Logger log = LogManager.getLogger(SmartSensorTester.class);
+	private final static int RESET_SENSOR = 0;
+	private final static int INPUT_VOLTAGE_OUT_OF_BOUNDS = 1;
+	private final static int TEMPERATURE_OUT_OF_BOUNDS = 2;
+	private static final int DISCONNECT_FROM_NETWORK = 3;
 
-    public static final String TITLE = "Smart_Sensor_Tester";
+	public static final String TITLE = "Smart_Sensor_Tester";
 	public static final int WIDTH = 540;
 	public static final int HEIGHT = 360;
 	public static final Dimension dim = new Dimension(540,360);
@@ -34,272 +44,376 @@ public class SmartSensorTester extends SmartSensorTesterBase {
 	private JButton readTransducerBlockDataFromAChannelOfATIMButton;
 	private JButton readTransducerChannelIdTEDSButton;
 	private JButton readTransducerChannelTEDSButton;
+	private JButton initializeSensor;
+	private JButton injectFault;
 	private BoxLayout layout;
 	private JLabel outputLabel;
 	private JTextArea output;
-	
-    double currentTime = 0;
+	private JScrollPane sp;
 
-    public SmartSensorTester(FederateConfig params) throws Exception {
-        super(params);
-    }
+	double currentTime = 0;
 
-    private void CheckReceivedSubscriptions(String s) {
+	public SmartSensorTester(FederateConfig params) throws Exception {
+		super(params);
+	}
 
-        InteractionRoot interaction = null;
-        while ((interaction = getNextInteractionNoWait()) != null) {
-            if (interaction instanceof ReadTransducerSampleDataFromAChannelOfATIMResponse) {
-                handleInteractionClass((ReadTransducerSampleDataFromAChannelOfATIMResponse) interaction);
-            }
-            else if (interaction instanceof ReadTransducerBlockDataFromAChannelOfATIMResponse) {
-                handleInteractionClass((ReadTransducerBlockDataFromAChannelOfATIMResponse) interaction);
-            }
-            else if (interaction instanceof ReadTransducerChannelTEDSResponse) {
-                handleInteractionClass((ReadTransducerChannelTEDSResponse) interaction);
-            }
-            else if (interaction instanceof ReadTransducerChannelIdTEDSResponse) {
-                handleInteractionClass((ReadTransducerChannelIdTEDSResponse) interaction);
-            }
-            log.info("Interaction received and handled: " + s);
-        }
-     }
+	private void CheckReceivedSubscriptions(String s) {
 
-    private void execute() throws Exception {
-        if(super.isLateJoiner()) {
-            currentTime = super.getLBTS() - super.getLookAhead();
-            super.disableTimeRegulation();
-        }
+		InteractionRoot interaction = null;
+		while ((interaction = getNextInteractionNoWait()) != null) {
+			if (interaction instanceof ReadTransducerSampleDataFromAChannelOfATIMResponse) {
+				handleInteractionClass((ReadTransducerSampleDataFromAChannelOfATIMResponse) interaction);
+			}
+			else if (interaction instanceof ReadTransducerBlockDataFromAChannelOfATIMResponse) {
+				handleInteractionClass((ReadTransducerBlockDataFromAChannelOfATIMResponse) interaction);
+			}
+			else if (interaction instanceof ReadTransducerChannelTEDSResponse) {
+				handleInteractionClass((ReadTransducerChannelTEDSResponse) interaction);
+			}
+			else if (interaction instanceof ReadTransducerChannelIdTEDSResponse) {
+				handleInteractionClass((ReadTransducerChannelIdTEDSResponse) interaction);
+			}
+			log.info("Interaction received and handled: " + s);
+		}
+	}
 
-        /////////////////////////////////////////////
-        // TODO perform basic initialization below //
-        /////////////////////////////////////////////
-        frame = new JFrame(TITLE);
- 		readTransducerSampleDataFromAChannelOfATIMButton = new JButton("ReadTransducerSampleDataFromAChannelOfATIMRequest");
- 		readTransducerSampleDataFromAChannelOfATIMButton.setAlignmentX(Component.LEFT_ALIGNMENT);
- 		readTransducerBlockDataFromAChannelOfATIMButton = new JButton("ReadTransducerBlockDataFromAChannelOfATIMRequest");
- 		readTransducerBlockDataFromAChannelOfATIMButton.setAlignmentX(Component.LEFT_ALIGNMENT);
- 		readTransducerChannelTEDSButton = new JButton("ReadTransducerChannelTEDSRequest");
- 		readTransducerChannelTEDSButton.setAlignmentX(Component.LEFT_ALIGNMENT);
- 		readTransducerChannelIdTEDSButton = new JButton("ReadTransducerChannelIdTEDSRequest");
- 		readTransducerChannelIdTEDSButton.setAlignmentX(Component.LEFT_ALIGNMENT);
- 		
- 		layout = new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS);
- 		outputLabel = new JLabel("Output");
- 		output = new JTextArea();
- 		output.setWrapStyleWord(true);
- 		output.setEditable(false);
+	private void execute() throws Exception {
+		if(super.isLateJoiner()) {
+			currentTime = super.getLBTS() - super.getLookAhead();
+			super.disableTimeRegulation();
+		}
 
- 		// JFrame setup
- 		frame.setMinimumSize(dim);
-     	frame.getContentPane().setLayout(layout);
- 		frame.setLocationRelativeTo(null);
+		/////////////////////////////////////////////
+		// TODO perform basic initialization below //
+		/////////////////////////////////////////////
+		frame = new JFrame(TITLE);
+		readTransducerSampleDataFromAChannelOfATIMButton = new JButton("ReadTransducerSampleDataFromAChannelOfATIMRequest");
+		readTransducerSampleDataFromAChannelOfATIMButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+		readTransducerBlockDataFromAChannelOfATIMButton = new JButton("ReadTransducerBlockDataFromAChannelOfATIMRequest");
+		readTransducerBlockDataFromAChannelOfATIMButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+		readTransducerChannelTEDSButton = new JButton("ReadTransducerChannelTEDSRequest");
+		readTransducerChannelTEDSButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+		readTransducerChannelIdTEDSButton = new JButton("ReadTransducerChannelIdTEDSRequest");
+		readTransducerChannelIdTEDSButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+		initializeSensor = new JButton("Initialize Sensor");
+		initializeSensor.setAlignmentX(Component.LEFT_ALIGNMENT);
+		injectFault = new JButton("Inject Fault");
+		injectFault.setAlignmentX(Component.LEFT_ALIGNMENT);
+		
+		layout = new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS);
+		outputLabel = new JLabel("Output");
+		output = new JTextArea();
+		output.setWrapStyleWord(true);
+		output.setEditable(false);
+		sp = new JScrollPane(output);
 
- 		frame.getContentPane().add(readTransducerSampleDataFromAChannelOfATIMButton);
- 		frame.getContentPane().add(readTransducerBlockDataFromAChannelOfATIMButton);
- 		frame.getContentPane().add(readTransducerChannelTEDSButton);
- 		frame.getContentPane().add(readTransducerChannelIdTEDSButton);
- 		frame.getContentPane().add(outputLabel);
- 		frame.getContentPane().add(output);
+		// JFrame setup
+		frame.setMinimumSize(dim);
+		frame.getContentPane().setLayout(layout);
+		frame.setLocationRelativeTo(null);
 
- 		frame.setVisible(true);
+		frame.getContentPane().add(readTransducerSampleDataFromAChannelOfATIMButton);
+		frame.getContentPane().add(readTransducerBlockDataFromAChannelOfATIMButton);
+		frame.getContentPane().add(readTransducerChannelTEDSButton);
+		frame.getContentPane().add(readTransducerChannelIdTEDSButton);
+		frame.getContentPane().add(initializeSensor);
+		frame.getContentPane().add(injectFault);
+		frame.getContentPane().add(outputLabel);
+		frame.getContentPane().add(sp);
 
-        AdvanceTimeRequest atr = new AdvanceTimeRequest(currentTime);
-        putAdvanceTimeRequest(atr);
+		frame.setVisible(true);
 
-        if(!super.isLateJoiner()) {
-            readyToPopulate();
-        }
+		AdvanceTimeRequest atr = new AdvanceTimeRequest(currentTime);
+		putAdvanceTimeRequest(atr);
 
-        ///////////////////////////////////////////////////////////////////////
-        // Call CheckReceivedSubscriptions(<message>) here to receive
-        // subscriptions published before the first time step.
-        ///////////////////////////////////////////////////////////////////////
+		if(!super.isLateJoiner()) {
+			readyToPopulate();
+		}
 
-        ///////////////////////////////////////////////////////////////////////
-        // TODO perform initialization that depends on other federates below //
-        ///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		// Call CheckReceivedSubscriptions(<message>) here to receive
+		// subscriptions published before the first time step.
+		///////////////////////////////////////////////////////////////////////
 
-        if(!super.isLateJoiner()) {
-            readyToRun();
-        }
+		///////////////////////////////////////////////////////////////////////
+		// TODO perform initialization that depends on other federates below //
+		///////////////////////////////////////////////////////////////////////
 
-        startAdvanceTimeThread();
+		if(!super.isLateJoiner()) {
+			readyToRun();
+		}
 
-        // this is the exit condition of the following while loop
-        // it is used to break the loop so that latejoiner federates can
-        // notify the federation manager that they left the federation
-        boolean exitCondition = false;
-        
-        readTransducerSampleDataFromAChannelOfATIMButton.addActionListener(e -> {
-        	ReadTransducerSampleDataFromAChannelOfATIMRequest vReadTransducerSampleDataFromAChannelOfATIMRequest = create_ReadTransducerSampleDataFromAChannelOfATIMRequest();
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_CheckSum((short) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Length((short) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageID((short) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageType((byte) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Priority((byte) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SequenceNo((short) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SessionNo((byte) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Status((byte) 1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_channelId(1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_ncapId(1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_samplingMode(1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timId(1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutNsecs(1);
-            vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutSecs(1);
-            try {
+		startAdvanceTimeThread();
+
+		// this is the exit condition of the following while loop
+		// it is used to break the loop so that latejoiner federates can
+		// notify the federation manager that they left the federation
+		boolean exitCondition = false;
+
+		readTransducerSampleDataFromAChannelOfATIMButton.addActionListener(e -> {
+			ReadTransducerSampleDataFromAChannelOfATIMRequest vReadTransducerSampleDataFromAChannelOfATIMRequest = create_ReadTransducerSampleDataFromAChannelOfATIMRequest();
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_CheckSum((short) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Length((short) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageID((short) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageType((byte) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Priority((byte) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SequenceNo((short) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SessionNo((byte) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Status((byte) 1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_channelId(1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_ncapId(1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_samplingMode(1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timId(1);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutNsecs(0);
+			vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutSecs(5);
+			try {
 				vReadTransducerSampleDataFromAChannelOfATIMRequest.sendInteraction(getLRC(), currentTime);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
-        
-        });
 
-        while (true) {
-            currentTime += super.getStepSize();
+		});
+		
+		readTransducerBlockDataFromAChannelOfATIMButton.addActionListener(e -> {
+			ReadTransducerBlockDataFromAChannelOfATIMRequest request = create_ReadTransducerBlockDataFromAChannelOfATIMRequest();
+			request.set_CheckSum((short) 1);
+			request.set_Length((short) 1);
+			request.set_MessageID((short) 1);
+			request.set_MessageType((byte) 1);
+			request.set_Priority((byte) 1);
+			request.set_SequenceNo((short) 1);
+			request.set_SessionNo((byte) 1);
+			request.set_Status((byte) 1);
+			request.set_channelId(1);
+			request.set_ncapId(1);
+			request.set_numberOfSamples(5);
+			request.set_sampleIntervalNsecs(0);
+			request.set_sampleIntervalSecs(5);
+			request.set_startTimeNsecs(0);
+			request.set_startTimeSecs(0);
+			request.set_timId(1);
+			request.set_timeoutNsecs(0);
+			request.set_timeoutSecs(20);
+			try {
+				request.sendInteraction(getLRC(), currentTime);
+			} catch (Exception e1) {
+				log.error(e1);
+			}
+		});
 
-            atr.requestSyncStart();
-            enteredTimeGrantedState();
+		initializeSensor.addActionListener(e -> {
+			InitializeSensor vInitializeSensor = create_InitializeSensor();
+			JPanel jp = new JPanel();
+			JLabel iv = new JLabel("Input Voltage");
+			JLabel temp = new JLabel("Temperature");
+			JTextField ivt = new JTextField("5");
+			JTextField tempt = new JTextField("70");
+			jp.add(iv);
+			jp.add(ivt);
+			jp.add(temp);
+			jp.add(tempt);
+			JOptionPane.showConfirmDialog(frame, jp, "Initialize Sensor: ", JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE);
+			try {
+				vInitializeSensor.set_inputVoltage(Integer.parseInt(ivt.getText()));
+			}
+			catch (NumberFormatException e1) {
+				vInitializeSensor.set_inputVoltage(5);
+			}
+			
+			try {
+				vInitializeSensor.set_realTemperature(Integer.parseInt(tempt.getText()));
+			}
+			catch (NumberFormatException e1) {
+				vInitializeSensor.set_realTemperature(70);
+			}
 
-            ////////////////////////////////////////////////////////////////////////////////////////
-            // TODO send interactions that must be sent every logical time step below.
-            // Set the interaction's parameters.
-            //
-            //    ReadTransducerSampleDataFromAChannelOfATIMRequest vReadTransducerSampleDataFromAChannelOfATIMRequest = create_ReadTransducerSampleDataFromAChannelOfATIMRequest();
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_CheckSum( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Length( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageID( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageType( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Priority( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SequenceNo( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SessionNo( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Status( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_channelId( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_ncapId( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_samplingMode( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timId( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutSecs( < YOUR VALUE HERE > );
-            //    vReadTransducerSampleDataFromAChannelOfATIMRequest.sendInteraction(getLRC(), currentTime);
-            //
-            //    InitializeSensor vInitializeSensor = create_InitializeSensor();
-            //    vInitializeSensor.set_inputVoltage( < YOUR VALUE HERE > );
-            //    vInitializeSensor.set_realTemperature( < YOUR VALUE HERE > );
-            //    vInitializeSensor.sendInteraction(getLRC(), currentTime);
-            //
-            //    ReadTransducerChannelIdTEDSRequest vReadTransducerChannelIdTEDSRequest = create_ReadTransducerChannelIdTEDSRequest();
-            //    vReadTransducerChannelIdTEDSRequest.set_CheckSum( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_Length( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_MessageID( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_MessageType( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_Priority( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_SequenceNo( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_SessionNo( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_Status( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_channelId( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_ncapId( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_timId( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.set_timeoutSecs( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelIdTEDSRequest.sendInteraction(getLRC(), currentTime);
-            //
-            //    FaultInjection vFaultInjection = create_FaultInjection();
-            //    vFaultInjection.set_FaultCode( < YOUR VALUE HERE > );
-            //    vFaultInjection.sendInteraction(getLRC(), currentTime);
-            //
-            //    ReadTransducerBlockDataFromAChannelOfATIMRequest vReadTransducerBlockDataFromAChannelOfATIMRequest = create_ReadTransducerBlockDataFromAChannelOfATIMRequest();
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_CheckSum( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_Length( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_MessageID( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_MessageType( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_Priority( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_SequenceNo( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_SessionNo( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_Status( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_channelId( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_ncapId( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_numberOfSamples( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_sampleIntervalNsecs( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_sampleIntervalSecs( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_startTimeNsecs( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_startTimeSecs( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_timId( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_timeoutSecs( < YOUR VALUE HERE > );
-            //    vReadTransducerBlockDataFromAChannelOfATIMRequest.sendInteraction(getLRC(), currentTime);
-            //
-            //    ReadTransducerChannelTEDSRequest vReadTransducerChannelTEDSRequest = create_ReadTransducerChannelTEDSRequest();
-            //    vReadTransducerChannelTEDSRequest.set_CheckSum( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_Length( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_MessageID( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_MessageType( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_Priority( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_SequenceNo( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_SessionNo( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_Status( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_channelId( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_ncapId( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_timId( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.set_timeoutSecs( < YOUR VALUE HERE > );
-            //    vReadTransducerChannelTEDSRequest.sendInteraction(getLRC(), currentTime);
-            //
-            ////////////////////////////////////////////////////////////////////////////////////////
+			try {
+				vInitializeSensor.sendInteraction(getLRC(), currentTime);
+			} catch (Exception e1) {
+				log.error(e1);
+			}
+		});
+		
+		injectFault.addActionListener(e -> {
+			FaultInjection vFaultInjection = create_FaultInjection();
+			JPanel jp = new JPanel();
+			JRadioButton reset = new JRadioButton("Reset Sensor", true);
+			JRadioButton volt = new JRadioButton("Input Voltage Out Of Bounds");
+			JRadioButton temp = new JRadioButton("Temperature Out Of Bounds");
+			JRadioButton disconnect = new JRadioButton("Disconnect sensor from network");
+			ButtonGroup bg = new ButtonGroup();
+			bg.add(reset);
+			bg.add(volt);
+			bg.add(temp);
+			bg.add(disconnect);
+			jp.add(reset);
+			jp.add(volt);
+			jp.add(temp);
+			jp.add(disconnect);
+			JOptionPane.showConfirmDialog(frame, jp, "Inject Fault", JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if (reset.isSelected())
+				vFaultInjection.set_FaultCode(RESET_SENSOR);
+			else if (volt.isSelected())
+				vFaultInjection.set_FaultCode(INPUT_VOLTAGE_OUT_OF_BOUNDS);
+			else if (temp.isSelected())
+				vFaultInjection.set_FaultCode(TEMPERATURE_OUT_OF_BOUNDS);
+			else if (disconnect.isSelected())
+				vFaultInjection.set_FaultCode(DISCONNECT_FROM_NETWORK);
+				
+		    try {
+				vFaultInjection.sendInteraction(getLRC(), currentTime);
+			} catch (Exception e1) {
+				log.error(e1);
+			}
+		});
 
-            CheckReceivedSubscriptions("Main Loop");
+		while (true) {
+			currentTime += super.getStepSize();
 
-            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // DO NOT MODIFY FILE BEYOND THIS LINE
-            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            AdvanceTimeRequest newATR = new AdvanceTimeRequest(currentTime);
-            putAdvanceTimeRequest(newATR);
-            atr.requestSyncEnd();
-            atr = newATR;
+			atr.requestSyncStart();
+			enteredTimeGrantedState();
 
-            if(exitCondition) {
-                break;
-            }
-        }
+			////////////////////////////////////////////////////////////////////////////////////////
+			// TODO send interactions that must be sent every logical time step below.
+			// Set the interaction's parameters.
+			//
+			//    ReadTransducerSampleDataFromAChannelOfATIMRequest vReadTransducerSampleDataFromAChannelOfATIMRequest = create_ReadTransducerSampleDataFromAChannelOfATIMRequest();
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_CheckSum( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Length( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageID( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_MessageType( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Priority( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SequenceNo( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_SessionNo( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_Status( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_channelId( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_ncapId( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_samplingMode( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timId( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.set_timeoutSecs( < YOUR VALUE HERE > );
+			//    vReadTransducerSampleDataFromAChannelOfATIMRequest.sendInteraction(getLRC(), currentTime);
+			//
+			//    InitializeSensor vInitializeSensor = create_InitializeSensor();
+			//    vInitializeSensor.set_inputVoltage( < YOUR VALUE HERE > );
+			//    vInitializeSensor.set_realTemperature( < YOUR VALUE HERE > );
+			//    vInitializeSensor.sendInteraction(getLRC(), currentTime);
+			//
+			//    ReadTransducerChannelIdTEDSRequest vReadTransducerChannelIdTEDSRequest = create_ReadTransducerChannelIdTEDSRequest();
+			//    vReadTransducerChannelIdTEDSRequest.set_CheckSum( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_Length( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_MessageID( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_MessageType( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_Priority( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_SequenceNo( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_SessionNo( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_Status( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_channelId( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_ncapId( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_timId( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.set_timeoutSecs( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelIdTEDSRequest.sendInteraction(getLRC(), currentTime);
+			//
+			//    FaultInjection vFaultInjection = create_FaultInjection();
+			//    vFaultInjection.set_FaultCode( < YOUR VALUE HERE > );
+			//    vFaultInjection.sendInteraction(getLRC(), currentTime);
+			//
+			//    ReadTransducerBlockDataFromAChannelOfATIMRequest vReadTransducerBlockDataFromAChannelOfATIMRequest = create_ReadTransducerBlockDataFromAChannelOfATIMRequest();
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_CheckSum( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_Length( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_MessageID( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_MessageType( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_Priority( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_SequenceNo( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_SessionNo( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_Status( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_channelId( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_ncapId( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_numberOfSamples( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_sampleIntervalNsecs( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_sampleIntervalSecs( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_startTimeNsecs( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_startTimeSecs( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_timId( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.set_timeoutSecs( < YOUR VALUE HERE > );
+			//    vReadTransducerBlockDataFromAChannelOfATIMRequest.sendInteraction(getLRC(), currentTime);
+			//
+			//    ReadTransducerChannelTEDSRequest vReadTransducerChannelTEDSRequest = create_ReadTransducerChannelTEDSRequest();
+			//    vReadTransducerChannelTEDSRequest.set_CheckSum( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_Length( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_MessageID( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_MessageType( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_Priority( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_SequenceNo( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_SessionNo( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_Status( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_channelId( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_ncapId( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_timId( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_timeoutNsecs( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.set_timeoutSecs( < YOUR VALUE HERE > );
+			//    vReadTransducerChannelTEDSRequest.sendInteraction(getLRC(), currentTime);
+			//
+			////////////////////////////////////////////////////////////////////////////////////////
 
-        // while loop finished, notify FederationManager about resign
-        super.notifyFederationOfResign();
-    }
+			CheckReceivedSubscriptions("Main Loop");
 
-    private void handleInteractionClass(ReadTransducerSampleDataFromAChannelOfATIMResponse interaction) {
-    	log.info("Received Reply: " + interaction.get_transducerSampleData());
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// DO NOT MODIFY FILE BEYOND THIS LINE
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			AdvanceTimeRequest newATR = new AdvanceTimeRequest(currentTime);
+			putAdvanceTimeRequest(newATR);
+			atr.requestSyncEnd();
+			atr = newATR;
+
+			if(exitCondition) {
+				break;
+			}
+		}
+
+		// while loop finished, notify FederationManager about resign
+		super.notifyFederationOfResign();
+	}
+
+	private void handleInteractionClass(ReadTransducerSampleDataFromAChannelOfATIMResponse interaction) {
+		log.info("Received Reply: " + interaction.get_transducerSampleData());
 		output.append("Measured Temperature:" + interaction.get_transducerSampleData() +"\n");
-    }
+		frame.repaint();
+	}
 
-    private void handleInteractionClass(ReadTransducerBlockDataFromAChannelOfATIMResponse interaction) {
-        //////////////////////////////////////////////////////////////////////////
-        // TODO implement how to handle reception of the interaction            //
-        //////////////////////////////////////////////////////////////////////////
-    }
+	private void handleInteractionClass(ReadTransducerBlockDataFromAChannelOfATIMResponse interaction) {
+		String data = interaction.get_transducerBlockData();
+		output.append(data);
+		log.info(data);
+	}
 
-    private void handleInteractionClass(ReadTransducerChannelTEDSResponse interaction) {
-        //////////////////////////////////////////////////////////////////////////
-        // TODO implement how to handle reception of the interaction            //
-        //////////////////////////////////////////////////////////////////////////
-    }
+	private void handleInteractionClass(ReadTransducerChannelTEDSResponse interaction) {
+		//////////////////////////////////////////////////////////////////////////
+		// TODO implement how to handle reception of the interaction            //
+		//////////////////////////////////////////////////////////////////////////
+	}
 
-    private void handleInteractionClass(ReadTransducerChannelIdTEDSResponse interaction) {
-        //////////////////////////////////////////////////////////////////////////
-        // TODO implement how to handle reception of the interaction            //
-        //////////////////////////////////////////////////////////////////////////
-    }
+	private void handleInteractionClass(ReadTransducerChannelIdTEDSResponse interaction) {
+		//////////////////////////////////////////////////////////////////////////
+		// TODO implement how to handle reception of the interaction            //
+		//////////////////////////////////////////////////////////////////////////
+	}
 
-    public static void main(String[] args) {
-        try {
-            FederateConfigParser federateConfigParser = new FederateConfigParser();
-            FederateConfig federateConfig = federateConfigParser.parseArgs(args, FederateConfig.class);
-            SmartSensorTester federate = new SmartSensorTester(federateConfig);
-            federate.execute();
+	public static void main(String[] args) {
+		try {
+			FederateConfigParser federateConfigParser = new FederateConfigParser();
+			FederateConfig federateConfig = federateConfigParser.parseArgs(args, FederateConfig.class);
+			SmartSensorTester federate = new SmartSensorTester(federateConfig);
+			federate.execute();
 
-            System.exit(0);
-        } catch (Exception e) {
-            log.error("There was a problem executing the SmartSensorTester federate: {}", e.getMessage());
-            log.error(e);
+			System.exit(0);
+		} catch (Exception e) {
+			log.error("There was a problem executing the SmartSensorTester federate: {}", e.getMessage());
+			log.error(e);
 
-            System.exit(1);
-        }
-    }
+			System.exit(1);
+		}
+	}
 }

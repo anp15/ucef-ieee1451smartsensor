@@ -2,10 +2,17 @@ package DigitalTwin;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 
 public class Tester {
-
+	private static String data = "";
 	public static void main(String args[]) {
 		TemperatureSensor sensor = new TemperatureSensor();
 		File file = new File("output.csv");
@@ -15,33 +22,49 @@ public class Tester {
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 		}
-		
-		output.println("Real Temperature,Measured Temperature");
-		
-		sensor.setInputVoltage(5);
-		for (int i = -55; i <= 150; i++){
-			int rand = ThreadLocalRandom.current().nextInt(-55, 150);
-			sensor.setRealTemperature(i);
-			
-			try {
-				sensor.calcVolt();
-				output.println(i + "," + sensor.getMeasuredTemperature());
-			} 
-			catch (Exception e) {
-				System.out.println(e.getMessage() + " at this temperature: " + rand);
+
+		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+
+		service.scheduleAtFixedRate(new Runnable() {
+			int count = 0;
+			@Override
+			public void run() {
+				count++;
+				try {
+					if (count >= 5)
+					{
+						data += sensor.getMeasuredTemperature();
+						System.out.println(data);
+						System.out.println("Done!");
+						service.shutdown();
+					}
+
+
+					data += sensor.getMeasuredTemperature()+ "\n";
+				} catch (SensorNonOperableException e) {
+					e.printStackTrace();
+				}
 			}
-			
-//			try {
-//				Thread.sleep(1000);
-//			} 
-//			catch (InterruptedException e) {
-//				e.printStackTrace();
-//				break;
-//			}
-		}
-		System.out.println("Done!");
+		}, 0, 1, TimeUnit.SECONDS);
+
+		//		output.println("Real Temperature,Measured Temperature");
+		//		
+		//		sensor.setInputVoltage(5);
+		//		for (int i = -55; i <= 150; i++){
+		//			int rand = ThreadLocalRandom.current().nextInt(-55, 150);
+		//			sensor.setRealTemperature(i);
+		//			
+		//			try {
+		//				sensor.getMeasuredTemperature();
+		//				output.println(i + "," + sensor.getMeasuredTemperature());
+		//			} 
+		//			catch (Exception e) {
+		//				System.out.println(e.getMessage() + " at this temperature: " + rand);
+		//			}
+		//		}
+		//		System.out.println("Done!");
 		output.flush();
 	}
-	
-	
+
+
 }

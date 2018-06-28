@@ -9,17 +9,34 @@ public class TemperatureSensor {
 	private final static double MIN_OPERATING_VOLTAGE = 4;
 	private final static double MAX_OPERATING_VOLTAGE = 30;
 	private final static double NONLINEARITY = 0.18;
+	private final static double OUT_OF_BOUNDS_INPUT_VOLTAGE = 100;
+	private final static double OUT_OF_BOUNDS_TEMPERATURE = 500;
 	
-	private double inputVoltage = -1;
-	private double outputVoltage = -1;
-	private double realTemperature = -100;
-	private double measuredTemperature = -100;
+	private double inputVoltage;
+	private double outputVoltage;
+	private double realTemperature;
+	private double measuredTemperature;
+	
+	private boolean voltOutOfBounds;
+	private boolean tempOutOfBounds;
+	private boolean disconnected;
+	
+	public TemperatureSensor() {
+		inputVoltage = 5;
+		realTemperature = 70;
+		voltOutOfBounds = false;
+		tempOutOfBounds = false;
+		disconnected = false;
+	}
 
 	/**
 	 * @param inputVoltage the inputVoltage to set
 	 */
 	public void setInputVoltage(double inputVoltage) {
-		this.inputVoltage = inputVoltage;
+		if (isBetween(inputVoltage, MIN_OPERATING_VOLTAGE, MAX_OPERATING_VOLTAGE))
+			this.inputVoltage = inputVoltage;
+		else
+			voltOutOfBounds = true;
 	}
 	
 	/**
@@ -33,24 +50,17 @@ public class TemperatureSensor {
 	 * @param realTemperature the realTemperature to set
 	 */
 	public void setRealTemperature(double realTemperature) {
-		this.realTemperature = realTemperature;
+		if (isBetween(realTemperature, MIN_OPERATING_TEMP, MAX_OPERATING_TEMP))
+			this.realTemperature = realTemperature;
+		else
+			tempOutOfBounds = true;
 	}
 
 	/**
 	 * @return the measuredTemperature
-	 * @throws Exception 
+	 * @throws SensorNonOperableException  
 	 */
-	public double getMeasuredTemperature(){
-		calcVolt();
-		return measuredTemperature;
-	}
-	
-	private double plusMinus() {
-		double rand = ThreadLocalRandom.current().nextDouble(-1, 1);
-		return rand;
-	}
-	
-	public void calcVolt(){
+	public double getMeasuredTemperature() throws SensorNonOperableException{
 		if (isOperable()) {
 			if (isBetween(realTemperature, MIN_OPERATING_TEMP, -10))
 				measuredTemperature = realTemperature + plusMinus() * (.3 - (realTemperature+10)/450.0);
@@ -61,9 +71,16 @@ public class TemperatureSensor {
 			else if (isBetween(realTemperature, 25, 150))
 				measuredTemperature = realTemperature + plusMinus() * (.2 + 2*(realTemperature-25)/1250.0);
 		}
-		else
+		else {
 			measuredTemperature = Double.POSITIVE_INFINITY;
-//			throw new Exception("Sensor isn't operable");
+			throw new SensorNonOperableException();
+		}
+		return measuredTemperature;
+	}
+	
+	private double plusMinus() {
+		double rand = ThreadLocalRandom.current().nextDouble(-1, 1);
+		return rand;
 	}
 	
 	public void applyLinearity() {
@@ -84,10 +101,18 @@ public class TemperatureSensor {
 	 * @return determines if the sensor is operable based on the given constrains
 	 */
 	private boolean isOperable() {
-		return (isBetween(realTemperature, MIN_OPERATING_TEMP, MAX_OPERATING_TEMP) 
-				&& isBetween(inputVoltage, MIN_OPERATING_VOLTAGE, MAX_OPERATING_VOLTAGE));
+		return (!tempOutOfBounds && !voltOutOfBounds && !disconnected);
 	}
 	
 	
+	
+	public void reset() {
+		voltOutOfBounds = false;
+		tempOutOfBounds = false;
+		disconnected = false;		
+	}
 
+	public void disconnect() {
+		disconnected = true;
+	}
 }
