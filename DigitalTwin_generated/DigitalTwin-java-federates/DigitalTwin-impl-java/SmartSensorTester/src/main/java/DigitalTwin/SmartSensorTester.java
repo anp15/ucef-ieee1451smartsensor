@@ -46,6 +46,7 @@ public class SmartSensorTester extends SmartSensorTesterBase {
 	private JButton readTransducerChannelTEDSButton;
 	private JButton initializeSensor;
 	private JButton injectFault;
+	private JButton clearOutput;
 	private BoxLayout layout;
 	private JLabel outputLabel;
 	private JTextArea output;
@@ -99,6 +100,8 @@ public class SmartSensorTester extends SmartSensorTesterBase {
 		initializeSensor.setAlignmentX(Component.LEFT_ALIGNMENT);
 		injectFault = new JButton("Inject Fault");
 		injectFault.setAlignmentX(Component.LEFT_ALIGNMENT);
+		clearOutput = new JButton("Clear Output Window");
+		clearOutput.setAlignmentX(Component.LEFT_ALIGNMENT);
 		
 		layout = new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS);
 		outputLabel = new JLabel("Output");
@@ -118,6 +121,7 @@ public class SmartSensorTester extends SmartSensorTesterBase {
 		frame.getContentPane().add(readTransducerChannelIdTEDSButton);
 		frame.getContentPane().add(initializeSensor);
 		frame.getContentPane().add(injectFault);
+		frame.getContentPane().add(clearOutput);
 		frame.getContentPane().add(outputLabel);
 		frame.getContentPane().add(sp);
 
@@ -266,6 +270,10 @@ public class SmartSensorTester extends SmartSensorTesterBase {
 				log.error(e1);
 			}
 		});
+		
+		clearOutput.addActionListener(e -> {
+			output.setText("");
+		});
 
 		while (true) {
 			currentTime += super.getStepSize();
@@ -379,13 +387,13 @@ public class SmartSensorTester extends SmartSensorTesterBase {
 
 	private void handleInteractionClass(ReadTransducerSampleDataFromAChannelOfATIMResponse interaction) {
 		log.info("Received Reply: " + interaction.get_transducerSampleData());
-		output.append("Measured Temperature:" + interaction.get_transducerSampleData() +"\n");
+		output.append("Sample Data:\n" + interaction.get_transducerSampleData() +"\n");
 		frame.repaint();
 	}
 
 	private void handleInteractionClass(ReadTransducerBlockDataFromAChannelOfATIMResponse interaction) {
 		String data = interaction.get_transducerBlockData();
-		output.append(data);
+		output.append("BlockData:\n" + data);
 		log.info(data);
 	}
 
